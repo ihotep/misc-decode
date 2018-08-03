@@ -1,0 +1,70 @@
+# coding: UTF-8
+import sys
+import urlparse,cookielib,urllib2,urllib
+import time,re,os
+url='http://iholandia.tv/'
+VAR_COOKIEJAR_OBJ= cookielib.LWPCookieJar()
+VAR_USERAGENT='Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'
+VAR_UA=VAR_USERAGENT
+def func_http_request(url,VAR_COOKIEJAR_OBJ=VAR_COOKIEJAR_OBJ,VAR_UA=VAR_USERAGENT):
+    VAR_HTTP_RESPONSE=''
+    try:
+        class HTTPError(urllib2.HTTPErrorProcessor):
+            def http_response(self, request, response):
+                return response
+        def func_parser(s):
+            try:
+                offset=1 if s[0]=='+' else 0
+                val = int(eval(s.replace('!+[]','1').replace('!![]','1').replace('[]','0').replace('(','str(')[offset:]))
+                return val
+            except:
+                pass
+        if VAR_COOKIEJAR_OBJ==None:
+            VAR_COOKIEJAR_OBJ = cookielib.LWPCookieJar()
+        opener = urllib2.build_opener(HTTPError, urllib2.HTTPCookieProcessor(VAR_COOKIEJAR_OBJ))
+        opener.addheaders = [('User-Agent', VAR_UA)]
+        try:
+            response = opener.open(url)
+            result=VAR_HTTP_RESPONSE = response.read()
+            response.close()
+        except urllib2.HTTPError as e:
+            result=VAR_HTTP_RESPONSE = e.read()
+        VAR_GREP1 = re.compile('name="jschl_vc" value="(.+?)"/>').findall(result)[0]
+        init = re.compile('setTimeout\(function\(\){\s*.*?.*:(.*?)};').findall(result)[0]
+        VAR_GREP2 = re.compile(r"challenge-form\'\);\s*(.*)a.v").findall(result)[0]
+        VAR_VALUE = func_parser(init)
+        lines = VAR_GREP2.split(';')
+        if VAR_GREP1:
+            for line in lines:
+                if len(line)>0 and '=' in line:
+                    VAR_ARRAY=line.split('=')
+                    VAR_VALUEX = func_parser(VAR_ARRAY[1])
+                    VAR_VALUE = int(eval(str(VAR_VALUE)+VAR_ARRAY[0][-1]+str(VAR_VALUEX)))
+            VAR_VALUEY = VAR_VALUE + len(urlparse.urlparse(url).netloc)
+            u=url
+            query = '%s/cdn-cgi/l/chk_jschl?jschl_vc=%s&jschl_answer=%s' % (u, VAR_GREP1, VAR_VALUEY)
+            if 'type="hidden" name="pass"' in result:
+                VAR_GREP2=re.compile('name="pass" value="(.*?)"').findall(result)[0]
+                query = '%s/cdn-cgi/l/chk_jschl?pass=%s&jschl_vc=%s&jschl_answer=%s' % (u,urllib.quote_plus(VAR_GREP2), VAR_GREP1, VAR_VALUEY)
+                time.sleep(5)
+            VAR_COOKIESTRING =''.join(['%s=%s;'%(c.name, c.value) for c in VAR_COOKIEJAR_OBJ])
+            opener = urllib2.build_opener(HTTPError,urllib2.HTTPCookieProcessor(VAR_COOKIEJAR_OBJ))
+            opener.addheaders = [('User-Agent', VAR_UA)]
+            opener.addheaders.append(('cookie',VAR_COOKIESTRING))
+            opener.addheaders.append(('Referer','http://filiser.tv/'))
+            try:
+                response = opener.open(query)
+                response.close()
+            except urllib2.HTTPError as e:
+                response = e.read()
+        return VAR_COOKIEJAR_OBJ
+    except:
+        return None
+def func_load_cookie(VAR_COOKIE_FILE):
+    VAR_STRING = ''
+    if os.path.isfile(VAR_COOKIE_FILE):
+        VAR_COOKIEJAR_OBJ = cookielib.LWPCookieJar()
+        VAR_COOKIEJAR_OBJ.load(VAR_COOKIE_FILE)
+        for c in VAR_COOKIEJAR_OBJ:
+            VAR_STRING += '%s=%s;' % (c.name, c.value)
+    return VAR_STRING
