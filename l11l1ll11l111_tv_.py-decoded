@@ -1,0 +1,215 @@
+# -*- coding: utf-8 -*-
+import sys
+
+import urllib2,urllib
+import re,time
+import time,json,base64
+import cookielib,os
+import aes
+VAR_URL_MAIN='http://www.sport365.live/pl/main' # 'http://www.sport365.live/pl/main'
+VAR_UA_STRING='Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36'
+__all__=['getChannels','getChannelVideo','getStreams']
+def l1lll1l1l1l11l111_tv_(item):
+    return(item)
+def func_requester(url,data=None,header={},VAR_COOKIE=True):
+    if VAR_COOKIE:
+        VAR_COOKIEJAR_OBJECT = cookielib.LWPCookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(VAR_COOKIEJAR_OBJECT))
+        urllib2.install_opener(opener)
+    if not header:
+        header = {'User-Agent':VAR_UA_STRING}
+    req = urllib2.Request(url,data,headers=header)
+    try:
+        response = urllib2.urlopen(req, timeout=15)
+        VAR_RESPONSE_BODY = response.read()
+        response.close()
+    except:
+        VAR_RESPONSE_BODY=''
+    return VAR_RESPONSE_BODY
+def l1l11l1l11l111_tv_(url,data=None,header={},VAR_COOKIE=True):
+    VAR_COOKIEJAR_OBJECT = cookielib.LWPCookieJar()
+    if VAR_COOKIE:
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(VAR_COOKIEJAR_OBJECT))
+        urllib2.install_opener(opener)
+    if not header:
+        header = {'User-Agent':VAR_UA_STRING}
+    req = urllib2.Request(url,data,headers=header)
+    try:
+        response = urllib2.urlopen(req, timeout=15)
+        VAR_RESPONSE_BODY = response.read()
+        response.close()
+    except:
+        VAR_RESPONSE_BODY=''
+    c = ''.join(['%s=%s'%(c.name,c.value) for c in VAR_COOKIEJAR_OBJECT]) if VAR_COOKIEJAR_OBJECT else ''
+    return VAR_RESPONSE_BODY,c
+def l11l11l1l11l111_tv_(addheader=False):
+    ret=''
+    content = func_requester(VAR_URL_MAIN)
+    wrapper = re.compile('(http[^"]+/advertisement.js\?\d+)').findall(content)
+    VAR_GREP_1 = re.compile('<script type="text/javascript" src="(http://s1.medianetworkinternational.com/js/\w+.js)"').findall(content)
+    for wrapper in VAR_GREP_1:
+        VAR_JS_OBJ = func_requester(wrapper)
+        content=ParserClass().func_parse_js(VAR_JS_OBJ)
+        ret = content
+        ret = re.compile('return "(.*?)"').findall(content)
+        if ret:
+            ret = ret[0]
+            print 'key %s' % ret
+            break
+    url='http://www.sport365.live/pl/events/-/1/-/-/120'
+    content = func_requester(url)
+    ids = [(a.start(), a.end()) for a in re.finditer('onClick=', content)]
+    ids.append( (-1,-1) )
+    out=[]
+    for i in range(len(ids[:-1])):
+        l1l1lll1lll11l111_tv_ = content[ ids[i][1]:ids[i+1][0] ]
+        l11ll1ll1ll11l111_tv_=re.compile('\("([^"]+)", "([^"]+)", "[^"]+", 1\)').findall(l1l1lll1lll11l111_tv_)
+        l1ll11lll1ll11l111_tv_=re.compile('<img alt="(.*?)"').findall(l1l1lll1lll11l111_tv_)
+        t=re.compile('>([^<]+)<').findall(l1l1lll1lll11l111_tv_)
+        l1ll11llllll11l111_tv_ = '[COLOR lightgreen]•[/COLOR]' if l1l1lll1lll11l111_tv_.find('/images/types/dot-green-big.png')>0 else '[COLOR red]*[/COLOR]'
+        if l11ll1ll1ll11l111_tv_ and l1ll11lll1ll11l111_tv_:
+            event,l1ll1l1l1l1l11l111_tv_=l11ll1ll1ll11l111_tv_[0]
+            url = 'http://www.sport365.live/en/links/%s/1@%s'%(event.split('_')[-1],ret)
+            l1ll1l11ll1l11l111_tv_,l1ll11llll1l11l111_tv_= t[:2]
+            l1ll11ll111l11l111_tv_ = t[-1]
+            quality =  t[-2].replace('&nbsp;',',') if len(t)==4 else ''
+            title = '%s%s: [COLOR blue]%s[/COLOR] %s'%(l1ll11llllll11l111_tv_,l1ll1l11ll1l11l111_tv_,l1ll11llll1l11l111_tv_,l1ll11lll1ll11l111_tv_[0])
+            code=quality+l1ll11ll111l11l111_tv_
+            out.append({'title':title,'tvid':'','url':url,'group':'','urlepg':'','code':code})
+    return out
+def l1llll1ll11l111_tv_(url):
+    l1lll1lll1l11l111_tv_,ret=url.split('@')
+    content = func_requester(l1lll1lll1l11l111_tv_)
+    l1ll1l1ll11l11l111_tv_=re.compile('<span id=["\']span_link_links[\'"] onClick="\w+\(\'(.*?)\'').findall(content)
+    out=[]
+    for i, s in enumerate(l1ll1l1ll11l11l111_tv_):
+        l1ll1l11l1ll11l111_tv_=json.loads(base64.b64decode(s))
+        ciphertext = 'Salted__' + l1ll1l11l1ll11l111_tv_['s'].decode('hex') + base64.b64decode(l1ll1l11l1ll11l111_tv_['ct'])
+        src=aes.decrypt(ret,base64.b64encode(ciphertext))
+        src=src.strip('"').replace('\\'),'')
+        title = 'Link %d'%(i+1)
+        out.append({'title':title,'tvid':title,'key':ret,'url':src,'refurl':l1lll1lll1l11l111_tv_,'urlepg':''})
+    return out
+def l111l1lll11l111_tv_(item):
+    content = func_requester(item.get('url'),VAR_COOKIE=True)
+    VAR_URL_REGEXP ='KGh0dHA6Ly93d3cuW15cLl0rLnB3Lyg/ISYjKVteIl0rKQ==' # (http://www.[^\.]+.pw/(?!&#)[^"]+)
+    l11ll1ll1ll11l111_tv_=re.compile(VAR_URL_REGEXP.decode('base64'), re.IGNORECASE + re.DOTALL + re.MULTILINE + re.UNICODE).findall(content)
+    l1ll1l1lllll11l111_tv_='JiM=' # '&#'
+    VAR_RESPONSE_BODY = [x for x in l11ll1ll1ll11l111_tv_ if l1ll1l1lllll11l111_tv_.decode('base64') in x]
+    l1ll1ll1111l11l111_tv_ = 'JiMoXGQrKTs='
+    if VAR_RESPONSE_BODY:
+        VAR_RESPONSE_BODY=re.sub(l1ll1ll1111l11l111_tv_.decode('base64'), lambda x: chr(int(x.group(1))), VAR_RESPONSE_BODY[0])
+        header = {'User-Agent':VAR_UA_STRING,
+                  'Referer':item.get('url')}
+        data = func_requester(VAR_RESPONSE_BODY,header=header,VAR_COOKIE=True)
+        f=re.compile('.*?name="f"\s*value=["\']([^"\']+)["\']').findall(data)
+        d=re.compile('.*?name="d"\s*value=["\']([^"\']+)["\']').findall(data)
+        r=re.compile('.*?name="r"\s*value=["\']([^"\']+)["\']').findall(data)
+        action=re.compile('[\'"]action[\'"][,\s]*[\'"](http.*?)[\'"]').findall(data)
+        l1ll111ll1l11l111_tv_=re.compile('src=[\'"](.*?)[\'"]').findall(data)
+        if f and r and d and action:
+            l11llll1l1l11l111_tv_=urllib.urlencode({'d':d[0],'f':f[0],'r':r[0]})
+            l1lllll1ll1l11l111_tv_,c= l1l11l1l11l111_tv_(action[0],l11llll1l1l11l111_tv_,header=header,VAR_COOKIE=True)
+            VAR_RESPONSE_BODY=re.compile('\([\'"][^"\']+[\'"], [\'"][^"\']+[\'"], [\'"]([^"\']+)[\'"], 1\)').findall(l1lllll1ll1l11l111_tv_)
+            l1ll1l11l1ll11l111_tv_=json.loads(base64.b64decode(VAR_RESPONSE_BODY[0]))
+            ciphertext = 'Salted__' + l1ll1l11l1ll11l111_tv_['s'].decode('hex') + base64.b64decode(l1ll1l11l1ll11l111_tv_['ct'])
+            src=aes.decrypt(item.get('key'),base64.b64encode(ciphertext))
+            src=src.replace('"','').replace('\\','').encode('utf-8')
+            data=l1l11l1l11l111_tv_(l1ll111ll1l11l111_tv_[-1],header=header,VAR_COOKIE=True) if l1ll111ll1l11l111_tv_ else '',''
+            l1l1l11l11l111_tv_ =  re.compile('url:["\'](.*?)[\'"]').findall(str(data[0])) if data else ''
+            l1l1l11l11l111_tv_ = l1l1l11l11l111_tv_[0] if l1l1l11l11l111_tv_ else ''
+            l1l11l1l11l111_tv_(l1l1l11l11l111_tv_)
+            a,c=l1l11l1l11l111_tv_(src,header=header,VAR_COOKIE=True)
+            if src.startswith('http'):
+                href =src+'|Referer=%s&User-Agent=%s&X-Requested-With=ShockwaveFlash/22.0.0.209'%(urllib.quote(action[0]),VAR_UA_STRING)
+                print href
+                return href
+            else:
+                href=aes.decode_hls(src)
+                if href:
+                    href +='|Referer=%s&User-Agent=%s&X-Requested-With=ShockwaveFlash/22.0.0.209'%(urllib.quote(r[0]),VAR_UA_STRING)
+                    return href
+    return ''
+def l11l1lll11l111_tv_(url,data=None,header={},VAR_COOKIE=True):
+    VAR_COOKIEJAR_OBJECT = cookielib.LWPCookieJar()
+    if VAR_COOKIE:
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(VAR_COOKIEJAR_OBJECT))
+        urllib2.install_opener(opener)
+    if not header:
+        header = {'User-Agent':VAR_UA_STRING}
+    l1ll1l11l11l11l111_tv_={}
+    req = urllib2.Request(url,data,headers=header)
+    try:
+        response = urllib2.urlopen(req, timeout=15)
+        for k in response.headers.keys(): l1ll1l11l11l11l111_tv_[k]=response.headers[k]
+        VAR_RESPONSE_BODY = response.read()
+        response.close()
+    except:
+        VAR_RESPONSE_BODY=''
+    c = ''.join(['%s=%s'%(c.name,c.value) for c in VAR_COOKIEJAR_OBJECT]) if VAR_COOKIEJAR_OBJECT else ''
+    return VAR_RESPONSE_BODY,l1ll1l11l11l11l111_tv_
+class ParserClass:
+    def func_parse_js(self, data):
+        try:
+            l1ll111ll1ll11l111_tv_=data
+            l1ll11ll11ll11l111_tv_ = 'eval\\(function\\(w,i,s,e\\).*?}\\((.*?)\\)'
+            l1ll11l111ll11l111_tv_=re.compile(l1ll11ll11ll11l111_tv_).findall(l1ll111ll1ll11l111_tv_)
+            for l1ll1l1l11ll11l111_tv_ in l1ll11l111ll11l111_tv_:
+                l1ll1l1l111l11l111_tv_=self.l1ll1l1l1lll11l111_tv_(l1ll1l1l11ll11l111_tv_)
+                l1ll111ll1ll11l111_tv_=l1ll111ll1ll11l111_tv_.replace(l1ll1l1l11ll11l111_tv_,l1ll1l1l111l11l111_tv_)
+            return re.sub(re.compile("eval\(function\(w,i,s,e\).*?join\(''\);}", re.DOTALL), "", l1ll111ll1ll11l111_tv_, count=1)
+        except:
+            traceback.l1ll11l1ll1l11l111_tv_(file=sys.stdout)
+            return data
+    def l1ll11l1111l11l111_tv_(self, data):
+        return 'w,i,s,e' in data
+    def l1ll1l1l1lll11l111_tv_(self, l1ll1l111l1l11l111_tv_):
+        l1ll11ll1l1l11l111_tv_=""
+        try:
+            l1ll11l1l1ll11l111_tv_="w,i,s,e=("+l1ll1l111l1l11l111_tv_+')'
+            exec (l1ll11l1l1ll11l111_tv_)
+            l1ll11ll1l1l11l111_tv_=self.__1ll1l11111l11l111_tv_(w,i,s,e)
+        except: traceback.l1ll11l1ll1l11l111_tv_(file=sys.stdout)
+        return l1ll11ll1l1l11l111_tv_
+    def __1ll1l11111l11l111_tv_( self,w, i, s, e):
+        VAR_1_INTEGER = 0;
+        VAR_2_INTEGER = 0;
+        VAR_3_INTEGER = 0;
+        VAR_1_ARRAY = [];
+        VAR_2_ARRAY = [];
+        while True:
+            if (VAR_1_INTEGER < 5):
+                VAR_2_ARRAY.append(w[VAR_1_INTEGER])
+            elif (VAR_1_INTEGER < len(w)):
+                VAR_1_ARRAY.append(w[VAR_1_INTEGER]);
+            VAR_1_INTEGER+=1;
+            if (VAR_2_INTEGER < 5):
+                VAR_2_ARRAY.append(i[VAR_2_INTEGER])
+            elif (VAR_2_INTEGER < len(i)):
+                VAR_1_ARRAY.append(i[VAR_2_INTEGER])
+            VAR_2_INTEGER+=1;
+            if (VAR_3_INTEGER < 5):
+                VAR_2_ARRAY.append(s[VAR_3_INTEGER])
+            elif (VAR_3_INTEGER < len(s)):
+                VAR_1_ARRAY.append(s[VAR_3_INTEGER]);
+            VAR_3_INTEGER+=1;
+            if (len(w) + len(i) + len(s) + len(e) == len(VAR_1_ARRAY) + len(VAR_2_ARRAY) + len(e)):
+                break;
+        l1ll11l1l11l11l111_tv_ = ''.join(VAR_1_ARRAY)
+        l1ll111lll1l11l111_tv_ = ''.join(VAR_2_ARRAY)
+        VAR_2_INTEGER = 0;
+        l1ll11l11lll11l111_tv_ = [];
+        for VAR_1_INTEGER in range(0,len(VAR_1_ARRAY),2):
+            l1ll1l11llll11l111_tv_ = -1;
+            if ( ord(l1ll111lll1l11l111_tv_[VAR_2_INTEGER]) % 2):
+                l1ll1l11llll11l111_tv_ = 1;
+            l1ll11l11lll11l111_tv_.append(chr(    int(l1ll11l1l11l11l111_tv_[VAR_1_INTEGER: VAR_1_INTEGER+2], 36) - l1ll1l11llll11l111_tv_));
+            VAR_2_INTEGER+=1;
+            if (VAR_2_INTEGER >= len(VAR_2_ARRAY)):
+                VAR_2_INTEGER = 0;
+        ret=''.join(l1ll11l11lll11l111_tv_)
+        if 'eval(function(w,i,s,e)' in ret:
+            ret=re.compile('eval\(function\(w,i,s,e\).*}\((.*?)\)').findall(ret)[0]
+            return self.l1ll1l1l1lll11l111_tv_(ret)
+        else:
+            return ret
